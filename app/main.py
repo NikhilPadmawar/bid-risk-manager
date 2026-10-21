@@ -1,6 +1,8 @@
 import logging
 import time
 
+from app.routers import clients
+
 from fastapi import FastAPI, Request
 
 from app import models  # noqa: F401  (importing registers the tables)
@@ -15,6 +17,7 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title=settings.app_name)
 
+app.include_router(clients.router)
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
