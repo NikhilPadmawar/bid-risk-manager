@@ -1,9 +1,10 @@
 [project]
 name = "bid-risk-manager"
 version = "0.1.0"
-requires-python = ">=3.9"
+requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.128.8",
     "pydantic-settings>=2.11.0",
+    "sqlalchemy>=2.0.55",
     "uvicorn[standard]>=0.39.0",
 ]

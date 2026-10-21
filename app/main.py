@@ -3,11 +3,15 @@ import time
 
 from fastapi import FastAPI, Request
 
+from app import models  # noqa: F401  (importing registers the tables)
 from app.config import settings
+from app.database import Base, engine
 from app.logger import setup_logging
 
 setup_logging()
 logger = logging.getLogger(__name__)
+
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title=settings.app_name)
 
