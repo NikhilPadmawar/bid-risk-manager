@@ -1,6 +1,24 @@
-from fastapi import FastAPI
+import logging
+import time
 
-app = FastAPI(title="Bid Risk Manager")
+from fastapi import FastAPI, Request
+
+from app.config import settings
+from app.logger import setup_logging
+
+setup_logging()
+logger = logging.getLogger(__name__)
+
+app = FastAPI(title=settings.app_name)
+
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    start = time.perf_counter()
+    response = await call_next(request)
+    ms = (time.perf_counter() - start) * 1000
+    logger.info("%s %s -> %s (%.1f ms)", request.method, request.url.path, response.status_code, ms)
+    return response
 
 
 @app.get("/health")
