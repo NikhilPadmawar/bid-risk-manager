@@ -90,11 +90,18 @@ client_name,industry,past_bids_won,past_bids_lost,title,value,estimated_cost,dea
 
 Example response: `{"created": 16, "duplicates": 0, "errors": []}`
 
+## Demo
+
+![API docs page](docs/swagger.png)
+
+
 ## Tests
 
 ```bash
 uv run pytest -v
 ```
+
+![Test run](docs/tests.png)
 
 Tests run against a throwaway in-memory database, so they never touch `bids.db`.
 
