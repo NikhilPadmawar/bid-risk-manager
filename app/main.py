@@ -1,7 +1,7 @@
 import logging
 import time
 
-from app.routers import bids, clients
+from app.routers import bids, clients, imports
 
 from fastapi import FastAPI, Request
 
@@ -20,6 +20,8 @@ app = FastAPI(title=settings.app_name)
 app.include_router(clients.router)
 
 app.include_router(bids.router)
+
+app.include_router(imports.router)
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):

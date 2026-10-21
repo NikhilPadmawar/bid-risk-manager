@@ -1,0 +1,17 @@
+client_name,industry,past_bids_won,past_bids_lost,title,value,estimated_cost,deadline,status,notes
+Acme Corp,Retail,6,1,Website redesign,100000,72000,2026-12-15,draft,Standard scope
+Acme Corp,Retail,6,1,Mobile app,250000,205000,2026-11-30,submitted,
+Acme Corp,Retail,6,1,Loyalty platform,180000,120000,2027-01-31,draft,Good margin
+Globex,Finance,3,4,Data migration,80000,78000,2026-10-30,draft,Thin margin and tight deadline
+Globex,Finance,3,4,Risk dashboard,140000,125000,2026-11-20,submitted,
+Globex,Finance,3,4,Audit reporting tool,60000,59000,2026-10-26,draft,Rush job
+Initech,Technology,5,0,Cloud migration,320000,230000,2027-02-28,submitted,
+Initech,Technology,5,0,API gateway,90000,65000,2026-12-01,won,
+Initech,Technology,5,0,Security review,45000,30000,2026-11-10,draft,
+Umbrella Health,Healthcare,2,3,Patient portal,210000,190000,2026-11-05,draft,Unclear scope
+Umbrella Health,Healthcare,2,3,Records digitisation,130000,128000,2026-10-28,draft,Scope still unclear
+Stark Logistics,Logistics,4,2,Fleet tracking app,175000,140000,2026-12-20,submitted,
+Stark Logistics,Logistics,4,2,Route optimiser,95000,70000,2027-01-15,lost,
+Wayne Energy,Energy,1,5,Smart meter portal,260000,255000,2026-11-02,draft,Fixed price with tight margin
+Wayne Energy,Energy,1,5,Grid analytics,150000,140000,2026-10-27,draft,Client with late payment history
+Wayne Energy,Energy,1,5,Mobile field app,70000,52000,2027-01-10,draft,
