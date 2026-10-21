@@ -41,3 +41,27 @@ def get_bid(bid_id: int, db: Session = Depends(get_db)):
     if bid is None:
         raise HTTPException(status_code=404, detail=f"Bid {bid_id} not found")
     return bid
+
+
+@router.put("/{bid_id}", response_model=schemas.BidRead)
+def update_bid(bid_id: int, payload: schemas.BidUpdate, db: Session = Depends(get_db)):
+    bid = db.get(models.Bid, bid_id)
+    if bid is None:
+        raise HTTPException(status_code=404, detail=f"Bid {bid_id} not found")
+
+    for field, value in payload.model_dump(exclude_unset=True).items():
+        setattr(bid, field, value)
+
+    db.commit()
+    db.refresh(bid)
+    return bid
+
+
+@router.delete("/{bid_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_bid(bid_id: int, db: Session = Depends(get_db)):
+    bid = db.get(models.Bid, bid_id)
+    if bid is None:
+        raise HTTPException(status_code=404, detail=f"Bid {bid_id} not found")
+
+    db.delete(bid)
+    db.commit()
