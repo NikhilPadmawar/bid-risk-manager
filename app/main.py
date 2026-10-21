@@ -5,6 +5,8 @@ from app.routers import bids, clients, imports
 
 from fastapi import FastAPI, Request
 
+from app.error_handlers import register_error_handlers
+
 from app import models  # noqa: F401  (importing registers the tables)
 from app.config import settings
 from app.database import Base, engine
@@ -16,6 +18,8 @@ logger = logging.getLogger(__name__)
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title=settings.app_name)
+
+register_error_handlers(app)
 
 app.include_router(clients.router)
 

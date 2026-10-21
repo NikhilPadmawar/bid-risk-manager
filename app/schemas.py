@@ -1,6 +1,6 @@
 from datetime import date
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.models import BidStatus
 
@@ -35,6 +35,12 @@ class BidUpdate(BaseModel):
     deadline: date | None = None
     status: BidStatus | None = None
     notes: str | None = None
+    @field_validator("title", "value", "estimated_cost", "deadline", "status")
+    @classmethod
+    def reject_null(cls, v):
+        if v is None:
+            raise ValueError("cannot be null")
+        return v
 
 
 class BidRead(BidCreate):

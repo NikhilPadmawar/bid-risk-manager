@@ -4,6 +4,8 @@ from collections.abc import Iterator
 from datetime import date
 from pathlib import Path
 
+from app.exceptions import ImportFileError
+
 from pydantic import BaseModel, Field, ValidationError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -36,10 +38,15 @@ class ImportResult(BaseModel):
 
 def read_rows(path: Path) -> Iterator[tuple[int, dict[str, str]]]:
     """Yield (line_number, row) one at a time, without loading the whole file."""
-    with open(path, newline="", encoding="utf-8") as f:
-        reader = csv.DictReader(f)
-        for line_number, row in enumerate(reader, start=2):  # line 1 is the header
-            yield line_number, {k: v.strip() for k, v in row.items() if k and v and v.strip()}
+    try:
+        with open(path, newline="", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for line_number, row in enumerate(reader, start=2):  # line 1 is the header
+                yield line_number, {k: v.strip() for k, v in row.items() if k and v and v.strip()}
+    except FileNotFoundError as exc:
+        raise ImportFileError(f"CSV file not found: {path}") from exc
+    except (csv.Error, UnicodeDecodeError) as exc:
+        raise ImportFileError(f"CSV file could not be read: {exc}") from exc
 
 
 def import_bids(db: Session, path: Path) -> ImportResult:
