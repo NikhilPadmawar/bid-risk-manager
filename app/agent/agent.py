@@ -6,10 +6,12 @@ from langchain_core.tools import StructuredTool
 from sqlalchemy.orm import Session
 
 from app import models
+from app.agent.callbacks import StepLogger
 from app.agent.llm import get_llm
 from app.agent.schemas import AssessmentResult, RiskReport
 from app.agent.tools import BidTools
 from app.config import settings
+from app.decorators import log_tool_call
 from app.exceptions import LLMError, NotFoundError
 from app.services.risk import RiskScorer
 
@@ -50,10 +52,10 @@ def build_tools(db: Session) -> list[StructuredTool]:
     """
     bid_tools = BidTools(db)
     return [
-        StructuredTool.from_function(bid_tools.get_bid),
-        StructuredTool.from_function(bid_tools.get_client_history),
-        StructuredTool.from_function(bid_tools.calculate_margin),
-        StructuredTool.from_function(bid_tools.check_deadline),
+          StructuredTool.from_function(log_tool_call(bid_tools.get_bid)),
+          StructuredTool.from_function(log_tool_call(bid_tools.get_client_history)),
+          StructuredTool.from_function(log_tool_call(bid_tools.calculate_margin)),
+          StructuredTool.from_function(log_tool_call(bid_tools.check_deadline)),
     ]
 
 
@@ -72,10 +74,11 @@ def assess_bid(db: Session, bid_id: int, llm=None) -> AssessmentResult:
         system_prompt=build_system_prompt(),
         response_format=ToolStrategy(RiskReport),
     )
+    logger.info("Assessing bid %s", bid_id)
     try:
         result = agent.invoke(
             {"messages": [{"role": "user", "content": f"Assess bid {bid_id}."}]},
-            config={"recursion_limit": MAX_STEPS},
+            config={"recursion_limit": MAX_STEPS, "callbacks": [StepLogger(bid_id)]},
         )
     except Exception as exc:
         logger.error("Agent failed for bid %s: %s", bid_id, type(exc).__name__, exc_info=True)
