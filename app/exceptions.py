@@ -27,3 +27,13 @@ class ImportFileError(AppError):
 class DatabaseError(AppError):
     status_code = 500
     error = "database_error"
+    
+
+class LLMNotConfiguredError(AppError):
+    status_code = 503
+    error = "llm_not_configured"
+
+
+class LLMError(AppError):
+    status_code = 502
+    error = "llm_error"
