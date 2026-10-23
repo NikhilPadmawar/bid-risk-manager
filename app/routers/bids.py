@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.agent.agent import assess_bid
 from app.agent.llm import get_llm
-from app.agent.schemas import AssessmentResult
+from app.agent.schemas import AssessmentRead, AssessmentResult
 
 from app import models, schemas
 from app.database import get_db
@@ -80,3 +80,15 @@ def delete_bid(bid_id: int, db: Session = Depends(get_db)):
 @handle_db_errors
 def assess_one_bid(bid_id: int, db: Session = Depends(get_db), llm=Depends(get_llm)):
     return assess_bid(db, bid_id, llm=llm)
+
+
+@router.get("/{bid_id}/assessments", response_model=list[AssessmentRead])
+@handle_db_errors
+def list_assessments(bid_id: int, db: Session = Depends(get_db)):
+    get_bid_or_404(db, bid_id)
+    query = (
+        select(models.Assessment)
+        .where(models.Assessment.bid_id == bid_id)
+        .order_by(models.Assessment.created_at.desc(), models.Assessment.id.desc())
+    )
+    return db.scalars(query).all()

@@ -40,6 +40,7 @@ def test_agent_calls_tools_then_submits_a_report(db, bid):
     model = ScriptedChatModel(messages=iter([*lookups(bid), report_call(57, "high")]))
     result = assess_bid(db, bid.id, llm=model)
 
+    assert db.query(models.Assessment).count() == 1  # saved to the history
     assert result.bid_id == bid.id
     assert result.report.score == 57
     assert result.report.level == "high"
@@ -83,6 +84,7 @@ def test_agent_that_never_submits_a_report_is_an_error(db, bid):
     with pytest.raises(LLMError) as error:
         assess_bid(db, bid.id, llm=model)
     assert "did not return a risk report" in error.value.message
+    assert db.query(models.Assessment).count() == 0  # nothing saved
 
 
 def test_missing_bid_is_rejected_before_calling_the_model(db):

@@ -93,9 +93,31 @@ def assess_bid(db: Session, bid_id: int, llm=None) -> AssessmentResult:
         deadline=bid.deadline,
         past_bids_lost=bid.client.past_bids_lost,
     )
+       # Keep a history, so we can see how a bid's risk changes over time
+    saved = models.Assessment(
+        bid_id=bid_id,
+        score=report.score,
+        level=report.level.value,
+        reasons=report.reasons,
+        recommendation=report.recommendation,
+        baseline_score=baseline.score,
+        baseline_level=baseline.level.value,
+    )
+    db.add(saved)
+    db.commit()
+    db.refresh(saved)
+
     logger.info(
-        "Assessed bid %s: agent says %s (%s), rules say %s (%s); tools: %s",
-        bid_id, report.score, report.level.value, baseline.score, baseline.level.value,
+        "Assessed bid %s (saved as #%s): agent says %s (%s), rules say %s (%s); tools: %s",
+        bid_id, saved.id, report.score, report.level.value, baseline.score, baseline.level.value,
         ", ".join(tools_used),
     )
+    return AssessmentResult(
+        assessment_id=saved.id,
+        bid_id=bid_id,
+        report=report,
+        baseline=baseline,
+        tools_used=tools_used,
+    )
+    
     return AssessmentResult(bid_id=bid_id, report=report, baseline=baseline, tools_used=tools_used)

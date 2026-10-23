@@ -1,4 +1,6 @@
-from pydantic import BaseModel, Field, model_validator
+from datetime import datetime
+
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.services.risk import RiskLevel, RiskResult, RiskScorer
 
@@ -25,7 +27,24 @@ class RiskReport(BaseModel):
 
 
 class AssessmentResult(BaseModel):
+    assessment_id: int  # the saved record
     bid_id: int
     report: RiskReport  # what the agent concluded
     baseline: RiskResult  # the plain rule-based score, for comparison
     tools_used: list[str]
+
+
+class AssessmentRead(BaseModel):
+    """A saved assessment, as listed in a bid's history."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    bid_id: int
+    score: int
+    level: RiskLevel
+    reasons: list[str]
+    recommendation: str
+    baseline_score: int
+    baseline_level: RiskLevel
+    created_at: datetime  # UTC

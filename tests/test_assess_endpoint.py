@@ -30,6 +30,7 @@ def test_assess_returns_a_structured_report(client, make_client, make_bid):
 
     assert response.status_code == 200
     data = response.json()
+    assert data["assessment_id"] == 1
     assert data["bid_id"] == bid["id"]
     assert data["report"]["score"] == 40
     assert data["report"]["level"] == "medium"
