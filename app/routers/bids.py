@@ -2,8 +2,9 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.agent.agent import AssessmentResult, assess_bid
+from app.agent.agent import assess_bid
 from app.agent.llm import get_llm
+from app.agent.schemas import AssessmentResult
 
 from app import models, schemas
 from app.database import get_db

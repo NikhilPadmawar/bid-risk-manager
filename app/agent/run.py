@@ -20,8 +20,14 @@ def main() -> None:
         except AppError as exc:
             raise SystemExit(f"{exc.error}: {exc.message}")
 
+    report = result.report
     print(f"Tools used: {', '.join(result.tools_used)}\n")
-    print(result.assessment)
+    print(f"Agent:    {report.score} ({report.level.value})")
+    print(f"Baseline: {result.baseline.score} ({result.baseline.level.value})\n")
+    print("Reasons:")
+    for reason in report.reasons:
+        print(f"  - {reason}")
+    print(f"\nRecommendation: {report.recommendation}")
 
 
 if __name__ == "__main__":

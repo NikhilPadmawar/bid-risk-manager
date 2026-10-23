@@ -1,5 +1,4 @@
-from fakes import BrokenChatModel, ScriptedChatModel, tool_call
-from langchain_core.messages import AIMessage
+from fakes import BrokenChatModel, ScriptedChatModel, report_call, tool_call
 from pydantic import SecretStr
 
 from app.agent.llm import get_llm
@@ -12,7 +11,7 @@ def use_model(model):
     app.dependency_overrides[get_llm] = lambda: model
 
 
-def test_assess_returns_the_agents_assessment(client, make_client, make_bid):
+def test_assess_returns_a_structured_report(client, make_client, make_bid):
     acme = make_client()
     bid = make_bid(acme["id"])
     use_model(
@@ -21,7 +20,7 @@ def test_assess_returns_the_agents_assessment(client, make_client, make_bid):
                 [
                     tool_call("get_bid", {"bid_id": bid["id"]}, "1"),
                     tool_call("get_client_history", {"client_id": acme["id"]}, "2"),
-                    AIMessage(content="MEDIUM risk: thin margin."),
+                    report_call(40, "medium"),
                 ]
             )
         )
@@ -30,11 +29,14 @@ def test_assess_returns_the_agents_assessment(client, make_client, make_bid):
     response = client.post(f"/bids/{bid['id']}/assess")
 
     assert response.status_code == 200
-    assert response.json() == {
-        "bid_id": bid["id"],
-        "assessment": "MEDIUM risk: thin margin.",
-        "tools_used": ["get_bid", "get_client_history"],
-    }
+    data = response.json()
+    assert data["bid_id"] == bid["id"]
+    assert data["report"]["score"] == 40
+    assert data["report"]["level"] == "medium"
+    assert data["report"]["reasons"]
+    assert data["report"]["recommendation"]
+    assert data["baseline"]["level"] in ("low", "medium", "high")
+    assert data["tools_used"] == ["get_bid", "get_client_history"]
 
 
 def test_assess_unknown_bid_returns_404(client):

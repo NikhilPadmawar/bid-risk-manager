@@ -1,26 +1,22 @@
 import logging
 
 from langchain.agents import create_agent
+from langchain.agents.structured_output import ToolStrategy
 from langchain_core.tools import StructuredTool
-from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app import models
 from app.agent.llm import get_llm
+from app.agent.schemas import AssessmentResult, RiskReport
 from app.agent.tools import BidTools
 from app.config import settings
 from app.exceptions import LLMError, NotFoundError
+from app.services.risk import RiskScorer
 
 logger = logging.getLogger(__name__)
 
 # Safety limit: stops a confused agent from looping (and spending money)
-MAX_STEPS = 12
-
-
-class AssessmentResult(BaseModel):
-    bid_id: int
-    assessment: str
-    tools_used: list[str]
+MAX_STEPS = 20
 
 
 def build_system_prompt() -> str:
@@ -36,12 +32,14 @@ Our risk rules: a margin below {settings.risk_margin_threshold:.0%} is risky, a 
 {settings.risk_deadline_days} days (or already passed) is risky, and a client with \
 {settings.risk_lost_bids} or more lost bids is risky. The more of these signals, the higher the risk.
 
-Then write a short assessment with:
-- the risk level (low, medium or high)
-- the reasons, quoting the actual numbers from the tools
-- a one-sentence recommendation
+How to score (0 to 100): margin counts for up to 40 points, the deadline for up to 30 points and \
+the client's lost bids for up to 30 points. The thinner the margin, the closer the deadline and the \
+more lost bids, the more points. Level must match the score: 0-24 is low, 25-49 is medium, \
+50-100 is high.
 
-If a tool returns an error, say so plainly instead of guessing."""
+When you have the facts, submit your final report with a score, a level, reasons that quote the \
+actual numbers from the tools, and a one-sentence recommendation. If a tool returns an error, say \
+so in the reasons instead of guessing."""
 
 
 def build_tools(db: Session) -> list[StructuredTool]:
@@ -62,13 +60,17 @@ def build_tools(db: Session) -> list[StructuredTool]:
 def assess_bid(db: Session, bid_id: int, llm=None) -> AssessmentResult:
     """Ask the agent to assess one bid. Pass `llm` in tests to avoid a real model."""
     # Cheap check first, so a missing bid never costs an LLM call
-    if db.get(models.Bid, bid_id) is None:
+    bid = db.get(models.Bid, bid_id)
+    if bid is None:
         raise NotFoundError(f"Bid {bid_id} not found")
 
+    # response_format makes the agent finish by submitting a RiskReport. If the report
+    # fails validation, the error is sent back to the model so it can correct itself.
     agent = create_agent(
         model=llm or get_llm(),
         tools=build_tools(db),
         system_prompt=build_system_prompt(),
+        response_format=ToolStrategy(RiskReport),
     )
     try:
         result = agent.invoke(
@@ -79,7 +81,21 @@ def assess_bid(db: Session, bid_id: int, llm=None) -> AssessmentResult:
         logger.error("Agent failed for bid %s: %s", bid_id, type(exc).__name__, exc_info=True)
         raise LLMError(f"The assessment could not be completed ({type(exc).__name__})") from exc
 
-    messages = result["messages"]
-    tools_used = [m.name for m in messages if m.type == "tool"]
-    logger.info("Assessed bid %s using tools: %s", bid_id, ", ".join(tools_used))
-    return AssessmentResult(bid_id=bid_id, assessment=messages[-1].text, tools_used=tools_used)
+    report = result.get("structured_response")
+    if report is None:
+        logger.error("Agent finished for bid %s without submitting a report", bid_id)
+        raise LLMError("The model did not return a risk report")
+
+    tools_used = [m.name for m in result["messages"] if m.type == "tool" and m.name != "RiskReport"]
+    baseline = RiskScorer().score(
+        value=bid.value,
+        estimated_cost=bid.estimated_cost,
+        deadline=bid.deadline,
+        past_bids_lost=bid.client.past_bids_lost,
+    )
+    logger.info(
+        "Assessed bid %s: agent says %s (%s), rules say %s (%s); tools: %s",
+        bid_id, report.score, report.level.value, baseline.score, baseline.level.value,
+        ", ".join(tools_used),
+    )
+    return AssessmentResult(bid_id=bid_id, report=report, baseline=baseline, tools_used=tools_used)

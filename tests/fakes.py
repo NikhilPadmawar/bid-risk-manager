@@ -21,3 +21,17 @@ class BrokenChatModel(ScriptedChatModel):
 def tool_call(name: str, args: dict, call_id: str) -> AIMessage:
     """A model reply that asks for one tool to be run."""
     return AIMessage(content="", tool_calls=[{"name": name, "args": args, "id": call_id}])
+
+
+def report_call(score: int, level: str, call_id: str = "report") -> AIMessage:
+    """A model reply that submits the final RiskReport."""
+    return tool_call(
+        "RiskReport",
+        {
+            "score": score,
+            "level": level,
+            "reasons": ["Margin is 8%, below the 15% threshold", "Deadline is in 5 days"],
+            "recommendation": "Raise the price or decline.",
+        },
+        call_id,
+    )
