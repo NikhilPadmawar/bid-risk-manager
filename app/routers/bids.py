@@ -2,6 +2,9 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.agent.agent import AssessmentResult, assess_bid
+from app.agent.llm import get_llm
+
 from app import models, schemas
 from app.database import get_db
 from app.decorators import handle_db_errors
@@ -70,3 +73,9 @@ def delete_bid(bid_id: int, db: Session = Depends(get_db)):
     bid = get_bid_or_404(db, bid_id)
     db.delete(bid)
     db.commit()
+
+
+@router.post("/{bid_id}/assess", response_model=AssessmentResult)
+@handle_db_errors
+def assess_one_bid(bid_id: int, db: Session = Depends(get_db), llm=Depends(get_llm)):
+    return assess_bid(db, bid_id, llm=llm)

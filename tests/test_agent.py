@@ -1,28 +1,12 @@
 from datetime import date, timedelta
 
 import pytest
-from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
+from fakes import BrokenChatModel, ScriptedChatModel, tool_call
 from langchain_core.messages import AIMessage
 
 from app import models
 from app.agent.agent import assess_bid, build_system_prompt, build_tools
 from app.exceptions import LLMError, NotFoundError
-
-
-class ScriptedChatModel(GenericFakeChatModel):
-    """A pretend AI model that plays back a fixed script of replies."""
-
-    def bind_tools(self, tools, **kwargs):
-        return self
-
-
-def tool_call(name: str, args: dict, call_id: str) -> AIMessage:
-    return AIMessage(content="", tool_calls=[{"name": name, "args": args, "id": call_id}])
-
-
-class BrokenChatModel(ScriptedChatModel):
-    def _generate(self, *args, **kwargs):
-        raise RuntimeError("the model is down")
 
 
 @pytest.fixture()

@@ -3,6 +3,7 @@ import os
 # Must be set before the app is imported, so tests never touch the real database.
 os.environ["DATABASE_URL"] = "sqlite://"
 os.environ["LOG_FILE"] = "test.log"
+os.environ["OPENROUTER_API_KEY"] = ""  # tests must never use a real key
 
 import pytest
 from fastapi.testclient import TestClient
