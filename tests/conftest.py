@@ -15,28 +15,42 @@ from app.main import app
 
 
 @pytest.fixture()
-def client():
-    """A test client backed by a fresh, empty in-memory database."""
+def engine():
+    """A fresh, empty in-memory database for each test."""
     engine = create_engine(
         "sqlite://",
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
     Base.metadata.create_all(bind=engine)
+    yield engine
+    engine.dispose()
+
+
+@pytest.fixture()
+def db(engine):
+    """A database session for tests that work with the database directly."""
+    session = sessionmaker(bind=engine, autoflush=False)()
+    yield session
+    session.close()
+
+
+@pytest.fixture()
+def client(engine):
+    """A test client whose app uses the test database."""
     TestingSession = sessionmaker(bind=engine, autoflush=False)
 
     def override_get_db():
-        db = TestingSession()
+        session = TestingSession()
         try:
-            yield db
+            yield session
         finally:
-            db.close()
+            session.close()
 
     app.dependency_overrides[get_db] = override_get_db
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()
-    engine.dispose()
 
 
 @pytest.fixture()
